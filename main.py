@@ -53,7 +53,17 @@ def send_telegram_message(text, chat_ids):
         payload = {"chat_id": chat_id, "text": text}
         requests.post(url, data=payload)
 
+def is_market_open():
+    # Check if the current time is within the Forex market hours (e.g., 11:00 PM UTC - 10:00 PM UTC)
+    current_time = datetime.utcnow().hour
+    # Market hours: 11:00 PM UTC - 10:00 PM UTC
+    return 23 <= current_time or current_time < 22
+
 def main():
+    if not is_market_open():
+        print("Forex market is closed. Skipping cron job.")
+        return  # Exit the function if the market is closed
+
     chat_ids = [TELEGRAM_CHAT_ID]  # Add any additional chat IDs if necessary
     for tf, k_period in TIMEFRAMES.items():
         for symbol in SYMBOLS:
