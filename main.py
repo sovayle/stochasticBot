@@ -1,5 +1,6 @@
 import requests
 import os
+from datetime import datetime
 
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -46,20 +47,29 @@ def calculate_stochastic(values, k_period):
     k = ((recent_close - low_n) / (high_n - low_n)) * 100
     return round(k, 2)
 
-def send_telegram_message(text):
+def send_telegram_message(text, chat_ids):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
-    requests.post(url, data=payload)
+    for chat_id in chat_ids:
+        payload = {"chat_id": chat_id, "text": text}
+        requests.post(url, data=payload)
 
 def main():
+    chat_ids = [TELEGRAM_CHAT_ID]  # Add any additional chat IDs if necessary
     for tf, k_period in TIMEFRAMES.items():
         for symbol in SYMBOLS:
             values = fetch_data(symbol, tf)
             if not values:
                 continue
             k = calculate_stochastic(values, k_period)
+
+            # Check every 5 minutes for Stochastic 0 or 100
             if k == 0 or k == 100:
-                send_telegram_message(f"📉 {symbol} ({tf}): Stochastic %K = {k}")
+                send_telegram_message(f"📉 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
+
+            # Check every 30th minute and send the Stochastic value regardless of 0 or 100
+            current_time = datetime.now()
+            if current_time.minute == 30:  # Check if it's the 30th minute
+                send_telegram_message(f"📊 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
 
 if __name__ == "__main__":
     main()
