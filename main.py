@@ -1,6 +1,8 @@
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+
+last_30_min_notification = None
 
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -53,17 +55,10 @@ def send_telegram_message(text, chat_ids):
         payload = {"chat_id": chat_id, "text": text}
         requests.post(url, data=payload)
 
-def is_market_open():
-    # Check if the current time is within the Forex market hours (e.g., 11:00 PM UTC - 10:00 PM UTC)
-    current_time = datetime.utcnow().hour
-    # Market hours: 11:00 PM UTC - 10:00 PM UTC
-    return 23 <= current_time or current_time < 22
-
 def main():
-    if not is_market_open():
-        print("Forex market is closed. Skipping cron job.")
-        return  # Exit the function if the market is closed
-
+    threshold = 1  # Trigger alert if %K is within 1 of 0 or 100
+    global last_30_min_notification
+    
     chat_ids = [TELEGRAM_CHAT_ID]  # Add any additional chat IDs if necessary
     for tf, k_period in TIMEFRAMES.items():
         for symbol in SYMBOLS:
@@ -72,14 +67,20 @@ def main():
                 continue
             k = calculate_stochastic(values, k_period)
 
+            # Skip if Stochastic is None
+            if k is None:
+                continue
+
             # Check every 5 minutes for Stochastic 0 or 100
-            if k == 0 or k == 100:
+            if k <= threshold or k >= (100 - threshold):
                 send_telegram_message(f"📉 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
 
             # Check every 30th minute and send the Stochastic value regardless of 0 or 100
             current_time = datetime.now()
-            if current_time.minute == 30:  # Check if it's the 30th minute
+            # Only trigger the 30-minute notification if 30 minutes have passed from the last notification
+            if last_30_min_notification is None or (current_time - last_30_min_notification) >= timedelta(minutes=30):
                 send_telegram_message(f"📊 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
+                last_30_min_notification = current_time  # Update the last notification time
 
 if __name__ == "__main__":
     main()
