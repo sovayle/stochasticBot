@@ -9,7 +9,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TWELVE_API_KEY = os.getenv("TWELVE_API_KEY")
 
-SYMBOLS = ["E/J"]
+SYMBOLS = ["EUR/JPY"]
 TIMEFRAMES = {
     "5min": 30,
     "15min": 30,
@@ -27,6 +27,7 @@ def fetch_data(symbol, interval):
     }
     response = requests.get(url, params=params)
     data = response.json()
+    print(f"Response from API for {symbol} {interval}: {data}")
     if "values" not in data:
         return []
     return data["values"]
