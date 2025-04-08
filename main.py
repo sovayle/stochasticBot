@@ -61,6 +61,8 @@ def main():
     
     chat_ids = [TELEGRAM_CHAT_ID]  # Add any additional chat IDs if necessary
     for tf, k_period in TIMEFRAMES.items():
+        print(f"Checking data for {tf} timeframe...")  # Added log message to check timeframe
+        
         for symbol in SYMBOLS:
             values = fetch_data(symbol, tf)
             if not values:
