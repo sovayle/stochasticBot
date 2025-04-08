@@ -64,7 +64,9 @@ def main():
         for symbol in SYMBOLS:
             values = fetch_data(symbol, tf)
             if not values:
+                print(f"No data for {symbol} at {tf} timeframe.")
                 continue
+            print(f"Data successfully fetched for {symbol} at {tf} timeframe.")  # Added log message here
             k = calculate_stochastic(values, k_period)
 
             # Skip if Stochastic is None
@@ -73,13 +75,13 @@ def main():
 
             # Check every 5 minutes for Stochastic 0 or 100
             if k <= threshold or k >= (100 - threshold):
-                send_telegram_message(f"📉 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
+                send_telegram_message(f"🚨 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
 
             # Check every 30th minute and send the Stochastic value regardless of 0 or 100
             current_time = datetime.now()
             # Only trigger the 30-minute notification if 30 minutes have passed from the last notification
             if last_30_min_notification is None or (current_time - last_30_min_notification) >= timedelta(minutes=30):
-                send_telegram_message(f"📊 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
+                send_telegram_message(f"{symbol} ({tf}): Stochastic %K = {k}", chat_ids)
                 last_30_min_notification = current_time  # Update the last notification time
 
 if __name__ == "__main__":
