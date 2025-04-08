@@ -76,7 +76,7 @@ def main():
                 continue
 
             # Check every 5 minutes for Stochastic 0 or 100
-            if k <= threshold or k >= (100 - threshold):
+            if k == 0 or k == 100:
                 send_telegram_message(f"🚨 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
 
             # Check every 30th minute and send the Stochastic value regardless of 0 or 100
