@@ -1,6 +1,6 @@
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -86,18 +86,27 @@ def main():
             print(f"Data successfully fetched for {symbol} at {tf} timeframe.")
 
             latest_candle = values[0]
-            candle_time = latest_candle["datetime"]
-            k = calculate_stochastic(values, k_period)
+            candle_time_str = latest_candle["datetime"]
 
+            # Handle datetime with or without time (e.g. daily)
+            try:
+                candle_dt = datetime.strptime(candle_time_str, "%Y-%m-%d %H:%M:%S")
+                shifted_time = candle_dt - timedelta(hours=5)
+                shifted_time_str = shifted_time.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                candle_dt = datetime.strptime(candle_time_str, "%Y-%m-%d")
+                shifted_time = candle_dt - timedelta(hours=5)
+                shifted_time_str = shifted_time.strftime("%Y-%m-%d")
+
+            k = calculate_stochastic(values, k_period)
             if k is None:
                 continue
 
-            # Log message with candle time
-            print(f"{symbol} ({tf}) | Latest candle time: {candle_time} | %K = {k}")
+            print(f"{symbol} ({tf}) | Latest candle time: {shifted_time_str} | %K = {k}")
 
             if k <= threshold or k >= (100 - threshold):
                 send_telegram_message(
-                    f"🚨 {symbol} ({tf}) | Candle time: {candle_time} | Stochastic %K = {k}",
+                    f"🚨 {symbol} ({tf}) | Candle time: {shifted_time_str} | Stochastic %K = {k}",
                     chat_ids
                 )
 
