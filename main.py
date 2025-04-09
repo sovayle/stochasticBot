@@ -70,7 +70,10 @@ def main():
 
             # Get candle time and convert to Athens
             utc_time_str = values[1]["datetime"]  # closed candle
-            utc_dt = datetime.strptime(utc_time_str, "%Y-%m-%d %H:%M:%S")
+            try:
+                utc_dt = datetime.strptime(utc_time_str, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                utc_dt = datetime.strptime(utc_time_str, "%Y-%m-%d")
             utc_dt = utc_dt.replace(tzinfo=pytz.utc)
             athens_time = utc_dt.astimezone(pytz.timezone("Europe/Athens"))
             athens_str = athens_time.strftime("%Y-%m-%d %H:%M")
