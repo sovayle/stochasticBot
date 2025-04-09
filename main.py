@@ -1,8 +1,7 @@
 import requests
 import os
-from datetime import datetime, timedelta
-
-last_30_min_notification = None
+from datetime import datetime
+import pytz
 
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -27,7 +26,6 @@ def fetch_data(symbol, interval):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    print(f"Response from API for {symbol} {interval}: {data}")
     if "values" not in data:
         return []
     return data["values"]
@@ -40,7 +38,7 @@ def calculate_stochastic(values, k_period):
     if len(closes) < k_period:
         return None
 
-    recent_close = closes[0]
+    recent_close = closes[0]  # already sliced in main to skip active
     low_n = min(lows[:k_period])
     high_n = max(highs[:k_period])
 
@@ -57,35 +55,41 @@ def send_telegram_message(text, chat_ids):
         requests.post(url, data=payload)
 
 def main():
-    threshold = 1  # Trigger alert if %K is within 1 of 0 or 100
-    global last_30_min_notification
-    
-    chat_ids = [TELEGRAM_CHAT_ID]  # Add any additional chat IDs if necessary
+    threshold = 1  # Alert if %K is near 0 or 100
+    chat_ids = [TELEGRAM_CHAT_ID]
+
     for tf, k_period in TIMEFRAMES.items():
         print(f"Checking data for {tf} timeframe...")  # Added log message to check timeframe
         
         for symbol in SYMBOLS:
             values = fetch_data(symbol, tf)
-            if not values:
+            if not values or len(values) < k_period + 1:
                 print(f"No data for {symbol} at {tf} timeframe.")
                 continue
             print(f"Data successfully fetched for {symbol} at {tf} timeframe.")  # Added log message here
-            k = calculate_stochastic(values, k_period)
 
-            # Skip if Stochastic is None
+            # Get candle time and convert to Athens
+            utc_time_str = values[1]["datetime"]  # closed candle
+            utc_dt = datetime.strptime(utc_time_str, "%Y-%m-%d %H:%M:%S")
+            utc_dt = utc_dt.replace(tzinfo=pytz.utc)
+            athens_time = utc_dt.astimezone(pytz.timezone("Europe/Athens"))
+            athens_str = athens_time.strftime("%Y-%m-%d %H:%M")
+
+            # Skip current candle
+            closed_values = values[1:]  # closed candle and back
+            k = calculate_stochastic(closed_values, k_period)
             if k is None:
                 continue
 
+            # Log calculated values for debugging
+            print(f"{symbol} ({tf}) | Closed candle time (Athens): {athens_str} | %K = {k}")
+            
             # Check every 5 minutes for Stochastic 0 or 100
             if k <= threshold or k >= (100 - threshold):
-                send_telegram_message(f"🚨 {symbol} ({tf}): Stochastic %K = {k}", chat_ids)
-
-            # Check every 30th minute and send the Stochastic value regardless of 0 or 100
-            current_time = datetime.now()
-            # Only trigger the 30-minute notification if 30 minutes have passed from the last notification
-            #if last_30_min_notification is None or (current_time - last_30_min_notification) >= timedelta(minutes=30):
-            #    send_telegram_message(f"📊 {symbol} (5min): Stochastic %K = {k}", chat_ids)
-            #    last_30_min_notification = current_time  # Update the last notification time
+                send_telegram_message(
+                    f"🚨 {symbol} ({tf}) (Athens time: {athens_str}): Stochastic %K = {k}",
+                    chat_ids
+                )
 
 if __name__ == "__main__":
     main()
