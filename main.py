@@ -1,11 +1,16 @@
 import requests
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-TWELVE_API_KEY = os.getenv("TWELVE_API_KEY")
+
+# Two API keys for failover
+API_KEYS = [
+    os.getenv("TWELVE_API_KEY_1"),
+    os.getenv("TWELVE_API_KEY_2")
+]
 
 SYMBOLS = ["EUR/JPY"]
 TIMEFRAMES = {
@@ -16,19 +21,32 @@ TIMEFRAMES = {
 }
 
 def fetch_data(symbol, interval):
-    url = f"https://api.twelvedata.com/time_series"
-    params = {
-        "symbol": symbol,
-        "interval": interval,
-        "outputsize": 100,
-        "apikey": TWELVE_API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    print(f"Response from API for {symbol} {interval}: {data}")
-    if "values" not in data:
+    url = "https://api.twelvedata.com/time_series"
+
+    for api_key in API_KEYS:
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "outputsize": 100,
+            "apikey": api_key
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+
+        print(f"Response from API for {symbol} {interval}: {data}")
+
+        if "values" in data:
+            return data["values"]
+
+        if data.get("code") == 429:
+            print("⚠️ API key rate limit hit. Trying next key...")
+            continue
+
+        print("❌ Unexpected API error.")
         return []
-    return data["values"]
+
+    print("‼️ All API keys exceeded their limits.")
+    return []
 
 def calculate_stochastic(values, k_period):
     closes = [float(c["close"]) for c in values]
@@ -63,21 +81,21 @@ def main():
 
         for symbol in SYMBOLS:
             values = fetch_data(symbol, tf)
-            if not values or len(values) < k_period + 1:
+            if not values or len(values) < k_period:
                 print(f"No data for {symbol} at {tf} timeframe.")
                 continue
+
             print(f"Data successfully fetched for {symbol} at {tf} timeframe.")
 
-            closed_candle = values[1]  # The most recently closed candle
-            candle_time = closed_candle["datetime"]
+            latest_candle = values[0]
+            candle_time = latest_candle["datetime"]
+            k = calculate_stochastic(values, k_period)
 
-            closed_values = values[1:]
-            k = calculate_stochastic(closed_values, k_period)
             if k is None:
                 continue
 
             # Log message with candle time
-            print(f"{symbol} ({tf}) | Closed candle time: {candle_time} | %K = {k}")
+            print(f"{symbol} ({tf}) | Latest candle time: {candle_time} | %K = {k}")
 
             if k <= threshold or k >= (100 - threshold):
                 send_telegram_message(
