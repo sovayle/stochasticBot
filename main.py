@@ -91,11 +91,11 @@ def main():
             # Handle datetime with or without time (e.g. daily)
             try:
                 candle_dt = datetime.strptime(candle_time_str, "%Y-%m-%d %H:%M:%S")
-                shifted_time = candle_dt - timedelta(hours=5)
+                shifted_time = candle_dt - timedelta(hours=7)
                 shifted_time_str = shifted_time.strftime("%Y-%m-%d %H:%M:%S")
             except ValueError:
                 candle_dt = datetime.strptime(candle_time_str, "%Y-%m-%d")
-                shifted_time = candle_dt - timedelta(hours=5)
+                shifted_time = candle_dt - timedelta(hours=7)
                 shifted_time_str = shifted_time.strftime("%Y-%m-%d")
 
             k = calculate_stochastic(values, k_period)
