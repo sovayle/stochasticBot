@@ -8,8 +8,8 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # Two API keys for failover
 API_KEYS = [
-    os.getenv("TWELVE_API_KEY_1"),
-    os.getenv("TWELVE_API_KEY_2")
+    os.getenv("TWELVE_API_KEY_2"),
+    os.getenv("TWELVE_API_KEY_1")
 ]
 
 SYMBOLS = ["EUR/JPY"]
@@ -32,8 +32,6 @@ def fetch_data(symbol, interval):
         }
         response = requests.get(url, params=params)
         data = response.json()
-
-        print(f"Response from API for {symbol} {interval}: {data}")
 
         if "values" in data:
             return data["values"]
