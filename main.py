@@ -74,7 +74,7 @@ def send_telegram_message(text, chat_ids):
         requests.post(url, data=payload)
 
 def main():
-    threshold = 4  # Trigger alert if %K is near 0 or 100
+    threshold = 1  # Trigger alert if %K is near 0 or 100
 
     for tf, k_period in TIMEFRAMES.items():
         print(f"Checking data for {tf} timeframe...")
