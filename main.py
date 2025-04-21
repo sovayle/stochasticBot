@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 # CONFIGURATION
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-TELEGRAM_CHAT_ID_2 = os.getenv("TELEGRAM_CHAT_ID_2")  # Add this
+#TELEGRAM_CHAT_ID_2 = os.getenv("TELEGRAM_CHAT_ID_2")  # Add this
 
-chat_ids = [TELEGRAM_CHAT_ID, TELEGRAM_CHAT_ID_2]  # Add both
+chat_ids = [TELEGRAM_CHAT_ID] #, TELEGRAM_CHAT_ID_2]  # Add both
 
 # Two API keys for failover
 API_KEYS = [
