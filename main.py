@@ -108,7 +108,7 @@ def main():
 
             if k <= threshold or k >= (100 - threshold):
                 send_telegram_message(
-                     f"🚨 time: {shifted_time_str} | Stochastic %K = {k} | Price = {float(values[0]['close']):.2f}",
+                     f"🚨 {tf} | Time: {shifted_time_str} | Stoch 30 = {k} | Price = {float(values[0]['close']):.2f}",
                     chat_ids
                 )
 
